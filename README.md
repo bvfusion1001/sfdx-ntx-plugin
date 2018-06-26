@@ -31,6 +31,7 @@ USAGE
 <!-- usagestop -->
 <!-- commands -->
 * [`sfdx-ntx-plugin hello:org [FILE]`](#sfdx-ntx-plugin-helloorg-file)
+* [`sfdx-ntx-plugin ntx:spawn`](#sfdx-ntx-plugin-ntxspawn)
 
 ## `sfdx-ntx-plugin hello:org [FILE]`
 
@@ -59,6 +60,31 @@ EXAMPLES
 ```
 
 _See code: [src\commands\hello\org.ts](https://github.com/bvfusion1001/sfdx-ntx-plugin/blob/v0.0.0/src\commands\hello\org.ts)_
+
+## `sfdx-ntx-plugin ntx:spawn`
+
+Creates a new scratch org,
+
+```
+USAGE
+  $ sfdx-ntx-plugin ntx:spawn
+
+OPTIONS
+  -a, --alias=alias                    set an alias for the created scratch org
+  -e, --email=email                    email for the created scratch org user
+  -f, --definitionfile=definitionfile  path to a scratch org definition file
+  -n, --permsetname=permsetname        the name of the permission set to assign
+  -o, --openpath=openpath              navigation URL path
+  -p, --planpath=planpath              path to plan to insert sample record data
+
+DESCRIPTION
+  Creates a new scratch org,
+  pushes in data,
+  assigns a permissionset,
+  and opens the org.
+```
+
+_See code: [src\commands\ntx\spawn.ts](https://github.com/bvfusion1001/sfdx-ntx-plugin/blob/v0.0.0/src\commands\ntx\spawn.ts)_
 <!-- commandsstop -->
 <!-- debugging-your-plugin -->
 # Debugging your plugin
