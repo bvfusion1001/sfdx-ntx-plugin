@@ -62,59 +62,83 @@ and opens the org.
     // if (!permissionSetName) {
     //   permissionSetName = await cli.prompt('Specify a PermissionSet name')
     // }
-    const createCommand = `sfdx force:org:create -s -a ${scratchAlias} -f ${scratchDef} adminEmail=${email}`;
-    const pushCommand = `sfdx force:source:push -u ${scratchAlias}`;
-    const permsetCommand = `sfdx force:user:permset:assign -n ${permissionSetName}`;
-    const importCommand = `sfdx force:data:tree:import -u ${scratchAlias} -p ${planPath}`;
-    const openCommand = `sfdx force:org:open -u ${scratchAlias} -p ${openPath}`;
-    const indent = "  ";
+    const createCommand = new Cmd(
+      "CREATE",
+      `sfdx force:org:create -s -a ${scratchAlias} -f ${scratchDef} adminEmail=${email}`
+    );
+    const pushCommand = new Cmd(
+      "PUSH",
+      `sfdx force:source:push -u ${scratchAlias}`
+    );
+    const permsetCommand = new Cmd(
+      "PERMSET",
+      `sfdx force:user:permset:assign -n ${permissionSetName}`
+    );
+    const importCommand = new Cmd(
+      "IMPORT",
+      `sfdx force:data:tree:import -u ${scratchAlias} -p ${planPath}`
+    );
+    const openCommand = new Cmd(
+      "OPEN",
+      `sfdx force:org:open -u ${scratchAlias} -p ${openPath}`
+    );
+    const indent = "    ";
     const newLine = "\n";
 
-    let commands: string[] = [createCommand, pushCommand];
+    let cmds: Cmd[] = [createCommand, pushCommand];
     if (permissionSetName) {
-      commands.push(permsetCommand);
+      cmds.push(permsetCommand);
     } else {
       this.warn(
         "PermissionSet not specified and will not be assigned." +
-          'To assign a permissionset, execute: "ntx:perm [PERMISSIONSET NAME]"'
+          'To assign a permissionset, execute: "sfdx ntx:perm [PERMISSIONSET NAME]"'
       );
       // TODO: include command for how to set permset later
     }
-    commands.push(importCommand, openCommand);
+    cmds.push(importCommand, openCommand);
 
-    const finalCommand = commands.map(c => indent + c).join(newLine);
+    const finalCommand = cmds.map(c => indent + c.command).join(newLine);
 
     cli.action.start(
-      "Executing robust commands with the little data provided :) "
+      "Executing robust commands with the little data provided :)"
     );
     // Log Execution
-    this.log("To Execute:");
+    this.log("Time to execute the following:");
     this.log(finalCommand);
 
     const promiseExec = promisify(exec);
-    while (commands) {
-      const command = commands.shift();
-      if (!command) {
-        this.log(`Command corrupt: ${command}`);
-        break;
+
+    while (cmds.length) {
+      const cmd = cmds.shift();
+      if (!cmd) {
+        this.error(`Unexpected or corrupt command: ${cmd.command}`);
       }
 
-      const result = await promiseExec(command)
+      this.log(cmd.command);
+      await promiseExec(cmd.command)
         .then(result => {
-          this.log(`then ${result}`);
-          return true;
+          this.log(`Success: ${result.stdout}`);
         })
-        .catch(error => {
-          this.error(`Error: ${error}`);
-          return false;
+        .catch(result => {
+          const errorMessage = `Warning:  ${result.stderr}`;
+          if (["CREATE", "PUSH"].includes(cmd.action)) {
+            this.error(errorMessage);
+          } else {
+            this.warn(errorMessage);
+          }
         });
-
-      if (!result) {
-        this.error(`Command failed: ${command}`);
-        break;
-      }
     }
 
-    cli.action.stop();
+    cli.action.stop("Well that was nice");
+  }
+}
+
+class Cmd {
+  action: string;
+  command: string;
+
+  constructor(action: string, command: string) {
+    this.action = action;
+    this.command = command;
   }
 }
