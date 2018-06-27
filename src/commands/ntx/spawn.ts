@@ -1,18 +1,10 @@
 import { Command, flags } from "@oclif/command";
 import cli from "cli-ux";
-// import { Org } from '../lib/something'
-// import { Test } from '../lib/test'
-// import { SfdxCommand, core } from '@salesforce/command'
 import { exec } from "child_process";
 import { promisify } from "util";
 
 export default class Spawn extends Command {
-  static description = `
-Creates a new scratch org,
-pushes in data,
-assigns a permissionset,
-and opens the org.
-  `;
+  static description = `Creates a new scratch org,\npushes in data,\nassigns a permissionset,\nimports sample data,\nand opens the org.`;
   // TODO: learn about help
   // TODO: include parameter defaults/overrides/priorities in help or descriptions
   static flags = {
@@ -62,32 +54,32 @@ and opens the org.
     // if (!permissionSetName) {
     //   permissionSetName = await cli.prompt('Specify a PermissionSet name')
     // }
-    const createCommand = new Cmd(
+    const createCommand = new CommandInfo(
       "CREATE",
       `sfdx force:org:create -s -a ${scratchAlias} -f ${scratchDef} adminEmail=${email}`
     );
-    const pushCommand = new Cmd(
+    const pushCommand = new CommandInfo(
       "PUSH",
       `sfdx force:source:push -u ${scratchAlias}`
     );
-    const permsetCommand = new Cmd(
+    const permsetCommand = new CommandInfo(
       "PERMSET",
       `sfdx force:user:permset:assign -n ${permissionSetName}`
     );
-    const importCommand = new Cmd(
+    const importCommand = new CommandInfo(
       "IMPORT",
       `sfdx force:data:tree:import -u ${scratchAlias} -p ${planPath}`
     );
-    const openCommand = new Cmd(
+    const openCommand = new CommandInfo(
       "OPEN",
       `sfdx force:org:open -u ${scratchAlias} -p ${openPath}`
     );
     const indent = "    ";
     const newLine = "\n";
 
-    let cmds: Cmd[] = [createCommand, pushCommand];
+    let commandInfos: CommandInfo[] = [createCommand, pushCommand];
     if (permissionSetName) {
-      cmds.push(permsetCommand);
+      commandInfos.push(permsetCommand);
     } else {
       this.warn(
         "PermissionSet not specified and will not be assigned." +
@@ -95,9 +87,11 @@ and opens the org.
       );
       // TODO: include command for how to set permset later
     }
-    cmds.push(importCommand, openCommand);
+    commandInfos.push(importCommand, openCommand);
 
-    const finalCommand = cmds.map(c => indent + c.command).join(newLine);
+    const finalCommand = commandInfos
+      .map(c => indent + c.command)
+      .join(newLine);
 
     cli.action.start(
       "Executing robust commands with the little data provided :)"
@@ -108,20 +102,20 @@ and opens the org.
 
     const promiseExec = promisify(exec);
 
-    while (cmds.length) {
-      const cmd = cmds.shift();
-      if (!cmd) {
-        this.error(`Unexpected or corrupt command: ${cmd.command}`);
+    while (commandInfos.length) {
+      const commandInfo = commandInfos.shift();
+      if (!commandInfo) {
+        this.error(`Unexpected or corrupt command: ${commandInfo.command}`);
       }
 
-      this.log(cmd.command);
-      await promiseExec(cmd.command)
+      this.log(commandInfo.command);
+      await promiseExec(commandInfo.command)
         .then(result => {
           this.log(`Success: ${result.stdout}`);
         })
         .catch(result => {
           const errorMessage = `Warning:  ${result.stderr}`;
-          if (["CREATE", "PUSH"].includes(cmd.action)) {
+          if (["CREATE", "PUSH"].includes(commandInfo.action)) {
             this.error(errorMessage);
           } else {
             this.warn(errorMessage);
@@ -133,7 +127,7 @@ and opens the org.
   }
 }
 
-class Cmd {
+class CommandInfo {
   action: string;
   command: string;
 
