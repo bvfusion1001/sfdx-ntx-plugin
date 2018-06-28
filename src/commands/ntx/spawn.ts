@@ -1,7 +1,6 @@
 import { Command, flags } from "@oclif/command";
-import cli from "cli-ux";
-import { exec } from "child_process";
-import { promisify } from "util";
+import { CommandInfo } from "../../lib/CommandInfo";
+import { CommandExecutor } from "../../lib/CommandExecutor";
 
 export default class Spawn extends Command {
   static description = `Creates a new scratch org,\npushes in data,\nassigns a permissionset,\nimports sample data,\nand opens the org.`;
@@ -54,85 +53,70 @@ export default class Spawn extends Command {
     // if (!permissionSetName) {
     //   permissionSetName = await cli.prompt('Specify a PermissionSet name')
     // }
+    const logSuccess = result => {
+      this.log(`Success: ${result}`);
+    };
+
     const createCommand = new CommandInfo(
       "CREATE",
-      `sfdx force:org:create -s -a ${scratchAlias} -f ${scratchDef} adminEmail=${email}`
+      `sfdx force:org:create -s -a ${scratchAlias} -f ${scratchDef} adminEmail=${email}`,
+      logSuccess,
+      result => {
+        this.error(`Warning:  ${result}`);
+      }
     );
     const pushCommand = new CommandInfo(
       "PUSH",
-      `sfdx force:source:push -u ${scratchAlias}`
+      `sfdx force:source:push -u ${scratchAlias}`,
+      logSuccess,
+      result => {
+        this.error(`Warning:  ${result}`);
+      }
     );
     const permsetCommand = new CommandInfo(
       "PERMSET",
-      `sfdx force:user:permset:assign -n ${permissionSetName}`
+      `sfdx force:user:permset:assign -n ${permissionSetName}`,
+      logSuccess,
+      result => {
+        this.error(`Warning:  ${result}`);
+      }
     );
     const importCommand = new CommandInfo(
       "IMPORT",
-      `sfdx force:data:tree:import -u ${scratchAlias} -p ${planPath}`
+      `sfdx force:data:tree:import -u ${scratchAlias} -p ${planPath}`,
+      logSuccess,
+      result => {
+        this.warn(`Warning:  ${result}`);
+      }
     );
     const openCommand = new CommandInfo(
       "OPEN",
-      `sfdx force:org:open -u ${scratchAlias} -p ${openPath}`
-    );
-    const indent = "    ";
-    const newLine = "\n";
-
-    let commandInfos: CommandInfo[] = [createCommand, pushCommand];
-    if (permissionSetName) {
-      commandInfos.push(permsetCommand);
-    } else {
-      this.warn(
-        "PermissionSet not specified and will not be assigned." +
-          'To assign a permissionset, execute: "sfdx ntx:perm [PERMISSIONSET NAME]"'
-      );
-      // TODO: include command for how to set permset later
-    }
-    commandInfos.push(importCommand, openCommand);
-
-    const finalCommand = commandInfos
-      .map(c => indent + c.command)
-      .join(newLine);
-
-    cli.action.start(
-      "Executing robust commands with the little data provided :)"
-    );
-    // Log Execution
-    this.log("Time to execute the following:");
-    this.log(finalCommand);
-
-    const promiseExec = promisify(exec);
-
-    while (commandInfos.length) {
-      const commandInfo = commandInfos.shift();
-      if (!commandInfo) {
-        this.error(`Unexpected or corrupt command: ${commandInfo.command}`);
+      `sfdx force:org:open -u ${scratchAlias} -p ${openPath}`,
+      logSuccess,
+      result => {
+        this.warn(`Warning:  ${result}`);
       }
+    );
 
-      this.log(commandInfo.command);
-      await promiseExec(commandInfo.command)
-        .then(result => {
-          this.log(`Success: ${result.stdout}`);
-        })
-        .catch(result => {
-          const errorMessage = `Warning:  ${result.stderr}`;
-          if (["CREATE", "PUSH"].includes(commandInfo.action)) {
-            this.error(errorMessage);
-          } else {
-            this.warn(errorMessage);
-          }
-        });
+    if (!permissionSetName) {
+      permsetCommand.dontExecute(() => {
+        this.warn(
+          "PermissionSet not specified and will not be assigned." +
+            'To assign a permissionset, execute: "sfdx ntx:perm [PERMISSIONSET NAME]"'
+        );
+      });
     }
 
-    cli.action.stop("Well that was nice");
-  }
-}
+    let commandInfos: CommandInfo[] = [
+      createCommand,
+      pushCommand,
+      permsetCommand,
+      importCommand,
+      openCommand
+    ];
 
-class CommandInfo {
-  action: string;
-  command: string;
-
-  constructor(action: string, command: string) {
-    this.action = action;
-    this.command = command;
+    let executor = new CommandExecutor(commandInfos);
+    this.log(executor.generate());
+    await executor.execute();
   }
 }
