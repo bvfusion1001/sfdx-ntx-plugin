@@ -18,42 +18,20 @@ export class CommandExecutor {
     while (this.commandInfos.length) {
       const commandInfo = this.commandInfos.shift();
 
+      // console.log("doExecute", commandInfo.doExecute);
       if (commandInfo.doExecute) {
         try {
           const result = await promiseExec(commandInfo.command);
+          // console.log("result", result);
           if (result.stdout) {
             commandInfo.successCallback(result.stdout);
           } else {
             commandInfo.failureCallback(result.stderr);
           }
         } catch (error) {
+          // console.log("error", error);
           commandInfo.failureCallback(error);
         }
-
-        // const promiseToExecute = new Promise((resolve, reject) => {
-        //   exec(commandInfo.command, (error, stdout, stderr) => {
-        //     console.log("error:", error);
-        //     if (!error) {
-        //       console.log("stdout:", stdout);
-        //       var r = commandInfo.successCallback(stdout);
-        //       resolve(r);
-        //     } else {
-        //       console.log("stderr:", stderr);
-        //       reject(commandInfo.failureCallback(stderr));
-        //     }
-        //   });
-        // });
-        // return await promiseToExecute;
-
-        // const promiseResults = await promiseExec(commandInfo.command)
-        //   .then(result => {
-        //     return commandInfo.successCallback(result);
-        //   })
-        //   .catch(result => {
-        //     commandInfo.failureCallback(result);
-        //   });
-        // console.log("then2: ", promiseResults);
-        // return promiseResults;
       } else {
         commandInfo.dontExecuteCallback();
       }
