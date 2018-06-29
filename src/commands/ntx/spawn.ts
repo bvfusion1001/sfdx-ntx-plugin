@@ -10,11 +10,13 @@ export default class Spawn extends Command {
   static flags = {
     alias: flags.string({
       char: "a",
-      description: "set an alias for the created scratch org"
+      description:
+        "set an alias for the created scratch org (default: flag, 'scratch-alias')"
     }),
     definitionfile: flags.string({
       char: "f",
-      description: "path to a scratch org definition file"
+      description:
+        "path to a scratch org definition file (default: 'config/project-scratch-def.json')"
     }),
     email: flags.string({
       char: "e",
@@ -28,7 +30,10 @@ export default class Spawn extends Command {
       char: "p",
       description: "path to plan to insert sample record data"
     }),
-    openpath: flags.string({ char: "o", description: "navigation URL path" }),
+    openpath: flags.string({
+      char: "o",
+      description: "navigation URL path (default: 'lightning')"
+    }),
     generatepassword: flags.boolean({
       char: "g",
       description: "generates a password and prints to the console"
@@ -36,64 +41,68 @@ export default class Spawn extends Command {
   };
 
   async run() {
-    // TODO: Replace some of these with environment variables
-    // TODO: Prompt for permissionset or skip that step
     const defaults = {
-      alias: "scratch-alias",
       definitionFile: "config/project-scratch-def.json",
-      planPath: "record-data/hello-ddp/hello-ddp-plan.json",
       openPath: "lightning"
     };
 
     const { flags } = this.parse(Spawn);
 
-    const scratchAlias = flags.alias || defaults.alias,
+    // TODO: Accept environment variables for each of the following variables
+    const scratchAlias = flags.alias || null,
       scratchDef = flags.definitionfile || defaults.definitionFile,
       email = flags.email || null,
       permissionSetName = flags.permsetname || null,
-      planPath = flags.planpath || defaults.planPath,
+      planPath = flags.planpath || null,
       openPath = flags.openpath || defaults.openPath;
 
-    const emailArgument = email ? ` adminEmail=${email}` : "";
+    const aliasArgument = scratchAlias ? `-a ${scratchAlias}` : "",
+      usernameArgument = scratchAlias ? `-u ${scratchAlias}` : "";
+    const emailArgument = email ? `adminEmail=${email}` : "";
     const createCommand = new CommandInfo(
-      `sfdx force:org:create -s -a ${scratchAlias} -f ${scratchDef}${emailArgument}`,
+      `sfdx force:org:create -s ${aliasArgument} -f ${scratchDef} ${emailArgument}`,
       result => this.log(`${result}`),
       result => this.error(`${result}`)
     );
+    if (!scratchAlias) {
+      createCommand.addRuntimeCallback(() => {
+        this.warn(
+          "It looks like you didn't specify an alias.\nTo assign, execute: 'sfdx force:alias:set [SCRATCH ALIAS]=[This org username]',\nor while spawning include: '-a [SCRATCH ALIAS]'"
+        );
+      });
+    }
+
     const pushCommand = new CommandInfo(
-      `sfdx force:source:push -u ${scratchAlias}`,
+      `sfdx force:source:push ${usernameArgument}`,
       result => this.log(`${result}`),
       result => this.error(`${result}`)
     );
     const permsetCommand = new CommandInfo(
-      `sfdx force:user:permset:assign -n ${permissionSetName}`,
+      `sfdx force:user:permset:assign ${usernameArgument} -n ${permissionSetName}`,
       result => this.log(`${result}`),
       result => this.error(`${result}`)
     );
+    const planPathArgument = planPath ? `-p ${planPath}` : "";
     const importCommand = new CommandInfo(
-      `sfdx force:data:tree:import -u ${scratchAlias} -p ${planPath}`,
+      `sfdx force:data:tree:import ${usernameArgument} ${planPathArgument}`,
       result => this.log(`${result}`),
       result => this.warn(`${result}`)
     );
     const openCommand = new CommandInfo(
-      `sfdx force:org:open -u ${scratchAlias} -p ${openPath}`,
+      `sfdx force:org:open ${usernameArgument} -p ${openPath}`,
       result => this.log(`${result}`),
       result => this.warn(`${result}`)
     );
     const passwordCommand = new CommandInfo(
-      `sfdx force:user:password:generate -u ${scratchAlias}`,
+      `sfdx force:user:password:generate ${usernameArgument}`,
       result => this.log(`${result}`),
-      result => this.log(`${result}`)
+      result => this.error(`${result}`)
     );
 
-    // if (!permissionSetName) {
-    //   permissionSetName = await cli.prompt('Specify a PermissionSet name')
-    // }
     if (!permissionSetName) {
-      permsetCommand.dontExecute(() => {
+      permsetCommand.dontExecute().addRuntimeCallback(() => {
         this.warn(
-          "PermissionSet not specified and will not be assigned." +
-            'To assign a permissionset, execute: "sfdx ntx:perm [PERMISSIONSET NAME]"'
+          "PermissionSet not specified and will not be assigned.\nTo assign a permissionset, execute: 'sfdx force:user:permset:assign -n [PERMISSIONSET NAME]'"
         );
       });
     }
@@ -101,10 +110,12 @@ export default class Spawn extends Command {
     let commandInfos: CommandInfo[] = [
       createCommand,
       pushCommand,
-      permsetCommand,
-      importCommand,
-      openCommand
+      permsetCommand
     ];
+    if (planPath) {
+      commandInfos.push(importCommand);
+    }
+    commandInfos.push(openCommand);
     if (flags.generatepassword) {
       commandInfos.push(passwordCommand);
     }

@@ -6,7 +6,7 @@ export class CommandInfo {
 
   // Optional
   doExecute: boolean = true;
-  dontExecuteCallback: Function;
+  runtimeCallback: Function;
 
   constructor(
     command: string,
@@ -18,8 +18,13 @@ export class CommandInfo {
     this.failureCallback = failureCallback;
   }
 
-  dontExecute(dontExecuteCallback: Function) {
+  dontExecute() {
     this.doExecute = false;
-    this.dontExecuteCallback = dontExecuteCallback;
+    return this;
+  }
+
+  addRuntimeCallback(runtimeCallback: Function) {
+    this.runtimeCallback = runtimeCallback;
+    return this;
   }
 }
