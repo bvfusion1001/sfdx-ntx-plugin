@@ -1,7 +1,7 @@
 {
   "name": "sfdx-ntx-plugin",
   "description": "A plugin for the Salesforce CLI with short commands and useful, overridable default values.",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "author": "brad.vidal@nintex.com",
   "bugs": "https://github.com/bvfusion1001/sfdx-ntx-plugin/issues",
   "dependencies": {
