@@ -1,6 +1,9 @@
 import { Command, flags } from "@oclif/command";
 import { CommandInfo } from "../../lib/CommandInfo";
 import { CommandExecutor } from "../../lib/CommandExecutor";
+import cli from "cli-ux";
+
+let usernamesToDelete;
 
 export default class Prune extends Command {
   static description =
@@ -31,14 +34,12 @@ export default class Prune extends Command {
     const { flags } = this.parse(Prune);
 
     const listCommand = new CommandInfo(
-      "LIST",
       "sfdx force:org:list --all --json",
       result => {
         const orgResult = JSON.parse(result).result;
 
         const allOrgs = [...orgResult.nonScratchOrgs, ...orgResult.scratchOrgs];
 
-        let usernamesToDelete;
         if (flags.all) {
           usernamesToDelete = this.makeUnique([
             ...allOrgs
@@ -62,17 +63,29 @@ export default class Prune extends Command {
             .filter(o => !("alias" in o && o.alias))
             .map(o => o.username);
         }
-        this.log("delete", usernamesToDelete);
       },
-      result => {
-        this.error(`Warning: ${JSON.stringify(result)}`);
-      }
+      result => this.error(result)
     );
 
     const listExecutor = new CommandExecutor([listCommand]);
     this.log(listExecutor.generate());
-
     await listExecutor.execute();
+
+    const deleteCommands = usernamesToDelete.map(u => {
+      return new CommandInfo(
+        `sfdx force:org:delete -u ${u} -p`,
+        result => this.log(`${result}`),
+        result => this.warn(`${result}`)
+      );
+    });
+
+    cli.action.start(
+      "Executing robust commands with the little data provided :)"
+    );
+    const deleteExecutor = new CommandExecutor(deleteCommands);
+    this.log(deleteExecutor.generate());
+    await deleteExecutor.execute();
+    cli.action.stop("Well that was nice");
   }
 
   makeUnique(array) {

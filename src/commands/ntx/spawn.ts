@@ -1,6 +1,7 @@
 import { Command, flags } from "@oclif/command";
 import { CommandInfo } from "../../lib/CommandInfo";
 import { CommandExecutor } from "../../lib/CommandExecutor";
+import cli from "cli-ux";
 
 export default class Spawn extends Command {
   static description = `Creates a new scratch org,\npushes in data,\nassigns a permissionset,\nimports sample data,\nand opens the org.`;
@@ -50,54 +51,35 @@ export default class Spawn extends Command {
       planPath = flags.planpath || defaults.planPath,
       openPath = flags.openpath || defaults.openPath;
 
+    const createCommand = new CommandInfo(
+      `sfdx force:org:create -s -a ${scratchAlias} -f ${scratchDef} adminEmail=${email}`,
+      result => this.log(`${result}`),
+      result => this.error(`${result}`)
+    );
+    const pushCommand = new CommandInfo(
+      `sfdx force:source:push -u ${scratchAlias}`,
+      result => this.log(`${result}`),
+      result => this.error(`${result}`)
+    );
+    const permsetCommand = new CommandInfo(
+      `sfdx force:user:permset:assign -n ${permissionSetName}`,
+      result => this.log(`${result}`),
+      result => this.error(`${result}`)
+    );
+    const importCommand = new CommandInfo(
+      `sfdx force:data:tree:import -u ${scratchAlias} -p ${planPath}`,
+      result => this.log(`${result}`),
+      result => this.warn(`${result}`)
+    );
+    const openCommand = new CommandInfo(
+      `sfdx force:org:open -u ${scratchAlias} -p ${openPath}`,
+      result => this.log(`${result}`),
+      result => this.warn(`${result}`)
+    );
+
     // if (!permissionSetName) {
     //   permissionSetName = await cli.prompt('Specify a PermissionSet name')
     // }
-    const logSuccess = result => {
-      this.log(`Success: ${result}`);
-    };
-
-    const createCommand = new CommandInfo(
-      "CREATE",
-      `sfdx force:org:create -s -a ${scratchAlias} -f ${scratchDef} adminEmail=${email}`,
-      logSuccess,
-      result => {
-        this.error(`Warning:  ${result}`);
-      }
-    );
-    const pushCommand = new CommandInfo(
-      "PUSH",
-      `sfdx force:source:push -u ${scratchAlias}`,
-      logSuccess,
-      result => {
-        this.error(`Warning:  ${result}`);
-      }
-    );
-    const permsetCommand = new CommandInfo(
-      "PERMSET",
-      `sfdx force:user:permset:assign -n ${permissionSetName}`,
-      logSuccess,
-      result => {
-        this.error(`Warning:  ${result}`);
-      }
-    );
-    const importCommand = new CommandInfo(
-      "IMPORT",
-      `sfdx force:data:tree:import -u ${scratchAlias} -p ${planPath}`,
-      logSuccess,
-      result => {
-        this.warn(`Warning:  ${result}`);
-      }
-    );
-    const openCommand = new CommandInfo(
-      "OPEN",
-      `sfdx force:org:open -u ${scratchAlias} -p ${openPath}`,
-      logSuccess,
-      result => {
-        this.warn(`Warning:  ${result}`);
-      }
-    );
-
     if (!permissionSetName) {
       permsetCommand.dontExecute(() => {
         this.warn(
@@ -115,8 +97,12 @@ export default class Spawn extends Command {
       openCommand
     ];
 
+    cli.action.start(
+      "Executing robust commands with the little data provided :)"
+    );
     let executor = new CommandExecutor(commandInfos);
     this.log(executor.generate());
     await executor.execute();
+    cli.action.stop("Well that was nice");
   }
 }

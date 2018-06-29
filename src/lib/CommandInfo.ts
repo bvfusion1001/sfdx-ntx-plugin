@@ -1,6 +1,5 @@
 export class CommandInfo {
   // Required
-  readonly action: string;
   readonly command: string;
   readonly successCallback: Function;
   readonly failureCallback: Function;
@@ -10,12 +9,10 @@ export class CommandInfo {
   dontExecuteCallback: Function;
 
   constructor(
-    action: string,
     command: string,
     successCallback: Function,
     failureCallback: Function
   ) {
-    this.action = action;
     this.command = command;
     this.successCallback = successCallback;
     this.failureCallback = failureCallback;

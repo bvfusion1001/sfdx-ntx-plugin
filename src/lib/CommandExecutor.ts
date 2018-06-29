@@ -1,5 +1,4 @@
 import { CommandInfo } from "./CommandInfo";
-import cli from "cli-ux";
 import { exec } from "child_process";
 import { promisify } from "util";
 
@@ -10,10 +9,6 @@ export class CommandExecutor {
   }
   async execute() {
     const promiseExec = promisify(exec);
-
-    cli.action.start(
-      "Executing robust commands with the little data provided :)"
-    );
 
     while (this.commandInfos.length) {
       const commandInfo = this.commandInfos.shift();
@@ -36,10 +31,10 @@ export class CommandExecutor {
         commandInfo.dontExecuteCallback();
       }
     }
-    cli.action.stop("Well that was nice");
   }
   generate() {
-    return `Time to execute the following:\n${this.commandInfos
+    // console.log(this.commandInfos);
+    return `Upcoming command batch:\n${this.commandInfos
       .filter(c => c.doExecute)
       .map(c => "    " + c.command)
       .join("\n")}`;
