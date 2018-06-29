@@ -40,6 +40,7 @@ export default class Prune extends Command {
 
         const allOrgs = [...orgResult.nonScratchOrgs, ...orgResult.scratchOrgs];
 
+        // this.log("***orgResult:", orgResult);
         if (flags.all) {
           usernamesToDelete = this.makeUnique([
             ...allOrgs

@@ -15,18 +15,43 @@ export class CommandExecutor {
 
       // console.log("doExecute", commandInfo.doExecute);
       if (commandInfo.doExecute) {
-        try {
-          const result = await promiseExec(commandInfo.command);
-          // console.log("result", result);
-          if (result.stdout) {
-            commandInfo.successCallback(result.stdout);
-          } else {
-            commandInfo.failureCallback(result.stderr);
-          }
-        } catch (error) {
-          // console.log("error", error);
-          commandInfo.failureCallback(error);
-        }
+        // console.log("***execute", commandInfo);
+        await new Promise((resolve, reject) => {
+          exec(
+            commandInfo.command,
+            { maxBuffer: 1024 * 500 },
+            (error, stdout, stderr) => {
+              if (error) {
+                // console.log("***stderr", stderr);
+                reject(stderr);
+              } else {
+                // console.log("***stdout", stdout);
+                resolve(stdout);
+              }
+            }
+          );
+        })
+          .then(result => {
+            // console.log("***then", result);
+            commandInfo.successCallback(result);
+          })
+          .catch(result => {
+            // console.log("***catch", result);
+            commandInfo.failureCallback(result);
+          });
+
+        // try {
+        //   const result = await promiseExec(commandInfo.command);
+        //   // console.log("result", result);
+        //   if (result.stdout) {
+        //     commandInfo.successCallback(result.stdout);
+        //   } else {
+        //     commandInfo.failureCallback(result.stderr);
+        //   }
+        // } catch (error) {
+        //   // console.log("error", error);
+        //   commandInfo.failureCallback(error);
+        // }
       } else {
         commandInfo.dontExecuteCallback();
       }
