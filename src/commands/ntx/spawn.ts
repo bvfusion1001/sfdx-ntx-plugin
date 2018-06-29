@@ -4,7 +4,7 @@ import { CommandExecutor } from "../../lib/CommandExecutor";
 import cli from "cli-ux";
 
 export default class Spawn extends Command {
-  static description = `Creates a new scratch org,\npushes in data,\nassigns a permissionset,\nimports sample data,\nand opens the org.`;
+  static description: string = `Creates a new scratch org,\npushes in data,\nassigns a permissionset,\nimports sample data,\nand opens the org.`;
   // TODO: learn about help
   // TODO: include parameter defaults/overrides/priorities in help or descriptions
   static flags = {
@@ -28,7 +28,11 @@ export default class Spawn extends Command {
       char: "p",
       description: "path to plan to insert sample record data"
     }),
-    openpath: flags.string({ char: "o", description: "navigation URL path" })
+    openpath: flags.string({ char: "o", description: "navigation URL path" }),
+    generatepassword: flags.boolean({
+      char: "g",
+      description: "generates a password and prints to the console"
+    })
   };
 
   async run() {
@@ -37,7 +41,6 @@ export default class Spawn extends Command {
     const defaults = {
       alias: "scratch-alias",
       definitionFile: "config/project-scratch-def.json",
-      email: "ecullen@drawloop.com",
       planPath: "record-data/hello-ddp/hello-ddp-plan.json",
       openPath: "lightning"
     };
@@ -46,13 +49,14 @@ export default class Spawn extends Command {
 
     const scratchAlias = flags.alias || defaults.alias,
       scratchDef = flags.definitionfile || defaults.definitionFile,
-      email = flags.email || defaults.email,
+      email = flags.email || null,
       permissionSetName = flags.permsetname || null,
       planPath = flags.planpath || defaults.planPath,
       openPath = flags.openpath || defaults.openPath;
 
+    const emailArgument = email ? ` adminEmail=${email}` : "";
     const createCommand = new CommandInfo(
-      `sfdx force:org:create -s -a ${scratchAlias} -f ${scratchDef} adminEmail=${email}`,
+      `sfdx force:org:create -s -a ${scratchAlias} -f ${scratchDef}${emailArgument}`,
       result => this.log(`${result}`),
       result => this.error(`${result}`)
     );
@@ -76,6 +80,11 @@ export default class Spawn extends Command {
       result => this.log(`${result}`),
       result => this.warn(`${result}`)
     );
+    const passwordCommand = new CommandInfo(
+      `sfdx force:user:password:generate -u ${scratchAlias}`,
+      result => this.log(`${result}`),
+      result => this.log(`${result}`)
+    );
 
     // if (!permissionSetName) {
     //   permissionSetName = await cli.prompt('Specify a PermissionSet name')
@@ -96,11 +105,14 @@ export default class Spawn extends Command {
       importCommand,
       openCommand
     ];
+    if (flags.generatepassword) {
+      commandInfos.push(passwordCommand);
+    }
 
     cli.action.start(
       "Executing robust commands with the little data provided :)"
     );
-    let executor = new CommandExecutor(commandInfos);
+    let executor: CommandExecutor = new CommandExecutor(commandInfos);
     this.log(executor.generate());
     await executor.execute();
     cli.action.stop("Well that was nice");

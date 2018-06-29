@@ -3,10 +3,10 @@ import { CommandInfo } from "../../lib/CommandInfo";
 import { CommandExecutor } from "../../lib/CommandExecutor";
 import cli from "cli-ux";
 
-let usernamesToDelete;
+let usernamesToDelete: string[];
 
 export default class Prune extends Command {
-  static description =
+  static description: string =
     "Deletes SFDX configured orgs. Default is to delete unaliased scratch orgs";
   static flags = {
     alias: flags.boolean({
@@ -33,37 +33,32 @@ export default class Prune extends Command {
   async run() {
     const { flags } = this.parse(Prune);
 
-    const listCommand = new CommandInfo(
+    const listCommand: CommandInfo = new CommandInfo(
       "sfdx force:org:list --all --json",
       result => {
         const orgResult = JSON.parse(result).result;
 
         const allOrgs = [...orgResult.nonScratchOrgs, ...orgResult.scratchOrgs];
 
-        // this.log("***orgResult:", orgResult);
+        let orgsToDelete;
         if (flags.all) {
-          usernamesToDelete = this.makeUnique(
-            [
-              ...allOrgs.filter(o => !("alias" in o && o.alias)),
-              ...orgResult.scratchOrgs.filter(o => o.isExpired == true),
-              ...orgResult.nonScratchOrgs.filter(
-                o => o.connectedStatus !== "Connected"
-              )
-            ].map(o => o.username)
-          );
+          orgsToDelete = this.makeUnique([
+            ...allOrgs.filter(o => !("alias" in o && o.alias)),
+            ...orgResult.scratchOrgs.filter(o => o.isExpired == true),
+            ...orgResult.nonScratchOrgs.filter(
+              o => o.connectedStatus !== "Connected"
+            )
+          ]);
         } else if (flags.expired) {
-          usernamesToDelete = orgResult.scratchOrgs
-            .filter(o => o.isExpired == true)
-            .map(o => o.username);
+          orgsToDelete = orgResult.scratchOrgs.filter(o => o.isExpired == true);
         } else if (flags.disconnected) {
-          usernamesToDelete = orgResult.nonScratchOrgs
-            .filter(o => o.connectedStatus !== "Connected")
-            .map(o => o.username);
+          orgsToDelete = orgResult.nonScratchOrgs.filter(
+            o => o.connectedStatus !== "Connected"
+          );
         } else {
-          usernamesToDelete = allOrgs
-            .filter(o => !("alias" in o && o.alias))
-            .map(o => o.username);
+          orgsToDelete = allOrgs.filter(o => !("alias" in o && o.alias));
         }
+        usernamesToDelete = orgsToDelete.map(o => o.username);
       },
       result => this.error(result)
     );
