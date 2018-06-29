@@ -1,6 +1,5 @@
 import { CommandInfo } from "./CommandInfo";
 import { exec } from "child_process";
-import { promisify } from "util";
 
 export class CommandExecutor {
   readonly commandInfos: CommandInfo[];
@@ -8,8 +7,6 @@ export class CommandExecutor {
     this.commandInfos = commandInfos;
   }
   async execute() {
-    const promiseExec = promisify(exec);
-
     while (this.commandInfos.length) {
       const commandInfo = this.commandInfos.shift();
 
@@ -19,7 +16,7 @@ export class CommandExecutor {
         await new Promise((resolve, reject) => {
           exec(
             commandInfo.command,
-            { maxBuffer: 1024 * 500 },
+            { maxBuffer: 1024 * 1000 * 5 }, // 5 MB max buffer
             (error, stdout, stderr) => {
               if (error) {
                 // console.log("***stderr", stderr);
@@ -39,19 +36,6 @@ export class CommandExecutor {
             // console.log("***catch", result);
             commandInfo.failureCallback(result);
           });
-
-        // try {
-        //   const result = await promiseExec(commandInfo.command);
-        //   // console.log("result", result);
-        //   if (result.stdout) {
-        //     commandInfo.successCallback(result.stdout);
-        //   } else {
-        //     commandInfo.failureCallback(result.stderr);
-        //   }
-        // } catch (error) {
-        //   // console.log("error", error);
-        //   commandInfo.failureCallback(error);
-        // }
       } else {
         commandInfo.dontExecuteCallback();
       }

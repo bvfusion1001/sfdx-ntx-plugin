@@ -42,15 +42,15 @@ export default class Prune extends Command {
 
         // this.log("***orgResult:", orgResult);
         if (flags.all) {
-          usernamesToDelete = this.makeUnique([
-            ...allOrgs
-              .filter(o => !("alias" in o && o.alias))
-              .map(o => o.username),
-            ...orgResult.scratchOrgs.filter(o => o.isExpired == true),
-            ...orgResult.nonScratchOrgs.filter(
-              o => o.connectedStatus !== "Connected"
-            )
-          ]);
+          usernamesToDelete = this.makeUnique(
+            [
+              ...allOrgs.filter(o => !("alias" in o && o.alias)),
+              ...orgResult.scratchOrgs.filter(o => o.isExpired == true),
+              ...orgResult.nonScratchOrgs.filter(
+                o => o.connectedStatus !== "Connected"
+              )
+            ].map(o => o.username)
+          );
         } else if (flags.expired) {
           usernamesToDelete = orgResult.scratchOrgs
             .filter(o => o.isExpired == true)
