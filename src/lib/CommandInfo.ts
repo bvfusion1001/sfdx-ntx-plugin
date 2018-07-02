@@ -18,12 +18,12 @@ export class CommandInfo {
     this.failureCallback = failureCallback;
   }
 
-  dontExecute() {
+  dontExecute(): CommandInfo {
     this.doExecute = false;
     return this;
   }
 
-  addRuntimeCallback(runtimeCallback: Function) {
+  addRuntimeCallback(runtimeCallback: Function): CommandInfo {
     this.runtimeCallback = runtimeCallback;
     return this;
   }

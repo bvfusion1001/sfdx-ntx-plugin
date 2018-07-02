@@ -84,7 +84,7 @@ export default class Prune extends Command {
     cli.action.stop("Well that was nice");
   }
 
-  private makeUnique(array: object[]) {
+  private makeUnique(array: object[]): object[] {
     let a = array.concat();
     for (var i = 0; i < a.length; ++i) {
       for (var j = i + 1; j < a.length; ++j) {

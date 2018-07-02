@@ -36,7 +36,7 @@ export class CommandExecutor {
       }
     }
   }
-  generate() {
+  generate(): string {
     return `Upcoming command batch:\n${this.commandInfos
       .filter(c => c.doExecute)
       .map(c => "    " + c.command)
