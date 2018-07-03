@@ -11,31 +11,32 @@ export default class Spawn extends Command {
     alias: flags.string({
       char: "a",
       description:
-        "Set an alias for the created scratch org. Priority: flag, environment variable (SCRATCH_ORG_ALIAS)"
+        "Set an alias for the created scratch org. Priority: 1. flag, 2. environment variable (SCRATCH_ORG_ALIAS)"
     }),
     definitionfile: flags.string({
       char: "f",
       description:
-        "Path to a scratch org definition file. Priority: flag, environment variable (SCRATCH_DEF_PATH), 'config/project-scratch-def.json'"
+        "Path to a scratch org definition file. Priority: 1. flag, 2. environment variable (SCRATCH_DEF_PATH), 3. 'config/project-scratch-def.json'"
     }),
     email: flags.string({
       char: "e",
       description:
-        "Email for the created scratch org user. Priority: flag, environment variable (ADMIN_EMAIL)"
+        "Email for the created scratch org user. Priority: 1. flag, 2. environment variable (ADMIN_EMAIL)"
     }),
     permsetname: flags.string({
       char: "n",
       description:
-        "The name of the permission set to assign. Priority: flag, environment variable (PERMISSION_SET_NAME)"
+        "The name of the permission set to assign. Priority: 1. flag, 2. environment variable (PERMISSION_SET_NAME)"
     }),
     planpath: flags.string({
       char: "p",
       description:
-        "Path to plan to insert sample record data. Priority: flag, environment variable ('SAMPLE_DATA_PLAN_PATH')"
+        "Path to plan to insert sample record data. Priority: 1. flag, 2. environment variable ('SAMPLE_DATA_PLAN_PATH')"
     }),
     openpath: flags.string({
       char: "o",
-      description: "Navigation URL path. Priority: flag, 'lightning'"
+      description:
+        "Navigation URL path. Priority: 1. flag, 2. environment variable (ORG_OPEN_PATH), 3. 'lightning'"
     }),
     generatepassword: flags.boolean({
       char: "g",
@@ -68,7 +69,10 @@ export default class Spawn extends Command {
         flags.planpath ||
         environmentRepository.get("SAMPLE_DATA_PLAN_PATH") ||
         null,
-      openPath = flags.openpath || defaults.openPath;
+      openPath =
+        flags.openpath ||
+        environmentRepository.get("ORG_OPEN_PATH") ||
+        defaults.openPath;
 
     const aliasArgument = scratchAlias ? `-a ${scratchAlias} ` : "",
       usernameArgument = scratchAlias ? `-u ${scratchAlias}` : "";

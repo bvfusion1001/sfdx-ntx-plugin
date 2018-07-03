@@ -6,10 +6,6 @@ export class EnvironmentRepository {
     require("dotenv").config();
   }
   get(environmentVariable: string): string {
-    console.log("environmentVariable: " + environmentVariable);
-    console.log(
-      "process.env[environmentVariable]: " + process.env[environmentVariable]
-    );
     return environmentVariable in process.env
       ? process.env[environmentVariable]
       : "";
