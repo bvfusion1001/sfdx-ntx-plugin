@@ -9,3 +9,4 @@ node_modules
 .sfdx
 *.vscode
 .vscode
+.env
