@@ -2,45 +2,50 @@ import { Command, flags } from "@oclif/command";
 import { CommandInfo } from "../../lib/CommandInfo";
 import { CommandExecutor } from "../../lib/CommandExecutor";
 import cli from "cli-ux";
+import { EnvironmentRepository } from "../../lib/EnvironmentRepository";
 
 export default class Spawn extends Command {
   static description: string = `Creates a new scratch org,\npushes in data,\nassigns a permissionset,\nimports sample data,\nand opens the org.`;
-  // TODO: learn about help
-  // TODO: include parameter defaults/overrides/priorities in help or descriptions
+
   static flags = {
     alias: flags.string({
       char: "a",
       description:
-        "set an alias for the created scratch org (default: flag, 'scratch-alias')"
+        "Set an alias for the created scratch org. Priority: flag, environment variable (SCRATCH_ORG_ALIAS)"
     }),
     definitionfile: flags.string({
       char: "f",
       description:
-        "path to a scratch org definition file (default: 'config/project-scratch-def.json')"
+        "Path to a scratch org definition file. Priority: flag, environment variable (SCRATCH_DEF_PATH), 'config/project-scratch-def.json'"
     }),
     email: flags.string({
       char: "e",
-      description: "email for the created scratch org user"
+      description:
+        "Email for the created scratch org user. Priority: flag, environment variable (ADMIN_EMAIL)"
     }),
     permsetname: flags.string({
       char: "n",
-      description: "the name of the permission set to assign"
+      description:
+        "The name of the permission set to assign. Priority: flag, environment variable (PERMISSION_SET_NAME)"
     }),
     planpath: flags.string({
       char: "p",
-      description: "path to plan to insert sample record data"
+      description:
+        "Path to plan to insert sample record data. Priority: flag, environment variable ('SAMPLE_DATA_PLAN_PATH')"
     }),
     openpath: flags.string({
       char: "o",
-      description: "navigation URL path (default: 'lightning')"
+      description: "Navigation URL path. Priority: flag, 'lightning'"
     }),
     generatepassword: flags.boolean({
       char: "g",
-      description: "generates a password and prints to the console"
+      description: "Generates a password and prints to the console"
     })
   };
 
   async run() {
+    const environmentRepository = new EnvironmentRepository();
+
     const defaults = {
       definitionFile: "config/project-scratch-def.json",
       openPath: "lightning"
@@ -48,19 +53,28 @@ export default class Spawn extends Command {
 
     const { flags } = this.parse(Spawn);
 
-    // TODO: Accept environment variables for each of the following variables
-    const scratchAlias = flags.alias || null,
-      scratchDef = flags.definitionfile || defaults.definitionFile,
-      email = flags.email || null,
-      permissionSetName = flags.permsetname || null,
-      planPath = flags.planpath || null,
+    const scratchAlias =
+        flags.alias || environmentRepository.get("SCRATCH_ORG_ALIAS") || null,
+      scratchDef =
+        flags.definitionfile ||
+        environmentRepository.get("SCRATCH_DEF_PATH") ||
+        defaults.definitionFile,
+      email = flags.email || environmentRepository.get("ADMIN_EMAIL") || null,
+      permissionSetName =
+        flags.permsetname ||
+        environmentRepository.get("PERMISSION_SET_NAME") ||
+        null,
+      planPath =
+        flags.planpath ||
+        environmentRepository.get("SAMPLE_DATA_PLAN_PATH") ||
+        null,
       openPath = flags.openpath || defaults.openPath;
 
-    const aliasArgument = scratchAlias ? `-a ${scratchAlias}` : "",
+    const aliasArgument = scratchAlias ? `-a ${scratchAlias} ` : "",
       usernameArgument = scratchAlias ? `-u ${scratchAlias}` : "";
     const emailArgument = email ? `adminEmail=${email}` : "";
     const createCommand = new CommandInfo(
-      `sfdx force:org:create -s ${aliasArgument} -f ${scratchDef} ${emailArgument}`,
+      `sfdx force:org:create -s ${aliasArgument}-f ${scratchDef} ${emailArgument}`,
       result => this.log(`${result}`),
       result => this.error(`${result}`)
     );
@@ -82,6 +96,7 @@ export default class Spawn extends Command {
       result => this.log(`${result}`),
       result => this.error(`${result}`)
     );
+
     const planPathArgument = planPath ? `-p ${planPath}` : "";
     const importCommand = new CommandInfo(
       `sfdx force:data:tree:import ${usernameArgument} ${planPathArgument}`,
